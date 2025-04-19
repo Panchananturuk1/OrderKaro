@@ -57,6 +57,7 @@ export const STORAGE_KEYS = {
   USER_DATA: 'user_data',
   CART: 'cart_data',
   RECENT_SEARCHES: 'recent_searches',
+  TEST_ACCOUNTS: 'test_accounts',
 };
 
 // Firebase config

@@ -1,90 +1,63 @@
 // @ts-nocheck
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { FontAwesome } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { Provider } from 'react-redux';
+import { Provider, useDispatch } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { store } from './src/redux/store';
+import AppNavigation from './src/navigation/AppNavigation';
+import { checkAuthStatus, logout } from './src/redux/slices/authSlice';
+import { STORAGE_KEYS } from './src/utils/constants';
 
-// Import screens
-import LoginScreen from './src/screens/LoginScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import ProductListScreen from './src/screens/ProductListScreen';
-import ProductDetailScreen from './src/screens/ProductDetailScreen';
-import CartScreen from './src/screens/CartScreen';
-// import ProfileScreen from './src/screens/ProfileScreen';
-// import OrdersScreen from './src/screens/OrdersScreen';
-// import CheckoutScreen from './src/screens/CheckoutScreen';
-
-// Define types for route parameters
-type StackParamList = {
-  Login: undefined;
-  Main: undefined;
-  ProductList: { categoryId?: string; categoryName?: string };
-  ProductDetail: { productId: string };
-  Checkout: undefined;
+// Clear all stored auth data (for testing purposes)
+const clearAuthData = async () => {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+    console.log('Auth data cleared for testing');
+  } catch (error) {
+    console.error('Error clearing auth data:', error);
+  }
 };
 
-type TabParamList = {
-  Home: undefined;
-  Cart: undefined;
-  Orders: undefined;
-  Profile: undefined;
+// Set this to true to clear auth data on app start (for development only)
+const CLEAR_AUTH_ON_START = true;
+
+// Auth check component that runs on app startup
+const AuthCheck = () => {
+  const dispatch = useDispatch();
+  
+  useEffect(() => {
+    const initAuth = async () => {
+      // Only clear auth data if explicitly set for development
+      if (CLEAR_AUTH_ON_START) {
+        await clearAuthData();
+      }
+      
+      // Check authentication status when app loads
+      console.log('Checking auth status...');
+      dispatch(checkAuthStatus());
+    };
+    
+    initAuth();
+  }, [dispatch]);
+  
+  return null;
 };
 
-// Define the PlaceholderScreen with proper type
-interface PlaceholderScreenProps {
-  route: {
-    name: string;
-  };
-}
-
-const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ route }) => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderText}>{route.name} Screen</Text>
-    <Text>Coming Soon!</Text>
-  </View>
-);
-
-const Stack = createStackNavigator<StackParamList>();
-const Tab = createBottomTabNavigator<TabParamList>();
-
-function MainTabs() {
+// Wrap the AppNavigation and AuthCheck in one component to ensure useDispatch works
+const Main = () => {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName = '';
-
-          if (route.name === 'Home') {
-            iconName = 'home';
-          } else if (route.name === 'Cart') {
-            iconName = 'shopping-cart';
-          } else if (route.name === 'Orders') {
-            iconName = 'list';
-          } else if (route.name === 'Profile') {
-            iconName = 'user';
-          }
-
-          return <FontAwesome name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: 'gray',
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Orders" component={PlaceholderScreen} />
-      <Tab.Screen name="Profile" component={PlaceholderScreen} />
-    </Tab.Navigator>
+    <>
+      <StatusBar style="auto" />
+      <AppNavigation />
+      <AuthCheck />
+      <Toast />
+    </>
   );
-}
+};
 
 // Create a simple fallback component in case of errors
 class ErrorBoundary extends React.Component {
@@ -111,43 +84,11 @@ class ErrorBoundary extends React.Component {
 }
 
 export default function App() {
-  // For demo purposes, we'll skip authentication and show the main app directly
-  const isAuthenticated = true;
-
   return (
     <Provider store={store}>
       <SafeAreaProvider>
         <ErrorBoundary>
-          <NavigationContainer>
-            <StatusBar style="auto" />
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              {!isAuthenticated ? (
-                // Auth screens
-                <Stack.Screen name="Login" component={LoginScreen} />
-              ) : (
-                // App screens
-                <>
-                  <Stack.Screen name="Main" component={MainTabs} />
-                  <Stack.Screen 
-                    name="ProductList" 
-                    component={ProductListScreen}
-                    options={{ headerShown: true, title: 'Products' }}
-                  />
-                  <Stack.Screen 
-                    name="ProductDetail" 
-                    component={ProductDetailScreen}
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen 
-                    name="Checkout" 
-                    component={PlaceholderScreen}
-                    options={{ headerShown: true, title: 'Checkout' }}
-                  />
-                </>
-              )}
-            </Stack.Navigator>
-            <Toast />
-          </NavigationContainer>
+          <Main />
         </ErrorBoundary>
       </SafeAreaProvider>
     </Provider>

@@ -18,7 +18,16 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { FontAwesome, Ionicons, AntDesign, MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
-import { CURRENCY_SYMBOL, COLORS, SCREEN_PADDING, BORDER_RADIUS, API_URL, API_ENDPOINTS, PRODUCT_CATEGORIES } from '../utils/constants';
+import { 
+  CURRENCY_SYMBOL, 
+  COLORS, 
+  SCREEN_PADDING, 
+  BORDER_RADIUS, 
+  API_URL, 
+  API_ENDPOINTS, 
+  PRODUCT_CATEGORIES,
+  APP_NAME 
+} from '../utils/constants';
 import { addToCart } from '../redux/slices/cartSlice';
 
 // Define types
@@ -107,7 +116,12 @@ const ProductDetailScreen: React.FC = () => {
       setProduct(response.data);
     } catch (err) {
       console.error('Error fetching product details:', err);
-      setError('Failed to load product details. Please try again.');
+      setError('Failed to load product details. Please check your connection and try again.');
+      // Use sample data as fallback in development environment
+      if (__DEV__) {
+        setProduct(SAMPLE_PRODUCT);
+        setError(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -132,11 +146,12 @@ const ProductDetailScreen: React.FC = () => {
     
     try {
       await Share.share({
-        message: `Check out ${product.name} on Order Karo! Only for ${CURRENCY_SYMBOL}${product.sale_price || product.price} per ${product.unit}.`,
+        message: `Check out ${product.name} on ${APP_NAME}! Only for ${CURRENCY_SYMBOL}${product.sale_price || product.price} per ${product.unit}.`,
         title: product.name,
       });
     } catch (error) {
       console.error('Error sharing product:', error);
+      Alert.alert('Share Failed', 'Unable to share this product at the moment.');
     }
   };
   
@@ -161,16 +176,18 @@ const ProductDetailScreen: React.FC = () => {
   
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={64} color={COLORS.RED} />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
-          style={styles.retryButton}
-          onPress={() => fetchProductData(productId)}
-        >
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={COLORS.RED} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => fetchProductData(productId)}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
   
@@ -355,6 +372,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SCREEN_PADDING,
+    backgroundColor: COLORS.WHITE,
   },
   errorText: {
     fontSize: 16,
@@ -364,13 +382,15 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: COLORS.PRIMARY,
-    paddingHorizontal: 24,
     paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: BORDER_RADIUS,
+    marginTop: 16,
   },
   retryButtonText: {
     color: COLORS.WHITE,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
   header: {
     position: 'absolute',
